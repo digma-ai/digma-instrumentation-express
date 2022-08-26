@@ -1,6 +1,6 @@
 import type * as express from 'express';
 import * as core from 'express-serve-static-core';
-import { trace } from '@opentelemetry/api';
+import { trace, context, Span } from '@opentelemetry/api';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
 import { name } from '../package.json';
 
@@ -13,6 +13,7 @@ export interface RouteDetails {
     line: number;
     // regexp: string;
 }
+
 const routesMap: Record<string, RouteDetails> = {};
 
 // function split (thing: any): string [] {
@@ -73,42 +74,45 @@ const routesMap: Record<string, RouteDetails> = {};
 //     }
 // }
 
+function setSemanticAttributesForRoute(span?: Span, routeDetails?: RouteDetails) {
+    if(routeDetails) {
+        span?.setAttribute(SemanticAttributes.CODE_FILEPATH, routeDetails.filePath);
+        span?.setAttribute(SemanticAttributes.CODE_LINENO, routeDetails.line);
+        span?.setAttribute(SemanticAttributes.CODE_FUNCTION, routeDetails.function);
+    }
+}
+
+async function handleRoute(req, span: Span | undefined) {
+    const route = req.baseUrl + req.route.path;
+    let routeDetails = routesMap[route];
+    if(routeDetails) {
+        setSemanticAttributesForRoute(span, routeDetails);
+    }
+    else {
+        const layer = req.route.stack[0];
+        const location = await getFunctionLocation(layer.handle);
+        console.log('location:', location);
+        if (location) {
+            routeDetails = {
+                filePath: location.source,
+                line: location.line,
+                function: layer.name,
+                route: route
+            };
+            routesMap[route] = routeDetails;
+            setSemanticAttributesForRoute(span, routeDetails);
+        }
+    }
+}
+
 export function useDigmaRouterMiddleware(router: express.Router) {
     router.use(function (req, res, next) {
-        const tracer = trace.getTracerProvider().getTracer(name);
-        tracer.startActiveSpan('middleware - digma', span => {
-            console.log("router middleware digma - before");
-            next();
-            console.log("router middleware digma - after");
-            if (req.route) {
-                const route = req.baseUrl + req.route.path;
-                let routeDetails = routesMap[route];
-                if (!routeDetails) {
-                    const layer = req.route.stack[0];
-                    const lp = getFunctionLocation(layer.handle);
-                    lp.then((location: { source: any; line: any; })=>{
-                        console.log("location:", location);
-                        if (location) {
-                            routesMap[route] = {
-                                filePath: location.source,
-                                line: location.line,
-                                function: layer.name,
-                                route: route
-                            }
-                        }
-                    });
-                   
-                }
-                routeDetails = routesMap[route]
-                if (routeDetails) {
-                    span.setAttribute(SemanticAttributes.CODE_FILEPATH, routeDetails.filePath);
-                    span.setAttribute(SemanticAttributes.CODE_LINENO, routeDetails.line);
-                    span.setAttribute(SemanticAttributes.CODE_FUNCTION, routeDetails.function);
-                }
-                span.end();
-            }
-
-        });
+        const activeContext = context.active();
+        const rootSpan = trace.getSpan(activeContext);
+        next();
+        if (req.route) {
+            handleRoute(req, rootSpan);
+        }
     })
 }
 
@@ -120,33 +124,13 @@ export function useDigmaRouterMiddlewareAsync(router: express.Router) {
             next();
             console.log("router middleware digma - after");
             if (req.route) {
-                const route = req.baseUrl + req.route.path;
-                let routeDetails = routesMap[route];
-                if (!routeDetails) {
-                    const layer = req.route.stack[0];
-                    const location = await getFunctionLocation(layer.handle);
-                    console.log("location:", location);
-                    if (location) {
-                        routesMap[route] = {
-                            filePath: location.source,
-                            line: location.line,
-                            function: layer.name,
-                            route: route
-                        }
-                    }
-                }
-                routeDetails = routesMap[route]
-                if (routeDetails) {
-                    span.setAttribute(SemanticAttributes.CODE_FILEPATH, routeDetails.filePath);
-                    span.setAttribute(SemanticAttributes.CODE_LINENO, routeDetails.line);
-                    span.setAttribute(SemanticAttributes.CODE_FUNCTION, routeDetails.function);
-                }
+                await handleRoute(req, span);
                 span.end();
             }
-
         });
     })
 }
+
 export function useDigmaAppMiddleware(app: express.Application) {
     app.use((req, res, next) => {
         const tracer = trace.getTracerProvider().getTracer(name);
@@ -154,29 +138,7 @@ export function useDigmaAppMiddleware(app: express.Application) {
             console.log("app middleware digma - before");
             next();
             console.log("app middleware digma - after");
-            const route = req.baseUrl + req.route.path;
-            let routeDetails = routesMap[route];
-            if (!routeDetails) {
-                const layer = req.route.stack[0];
-                const lp = getFunctionLocation(layer.handle);
-                lp.then((location: { source: any; line: any; })=>{
-                    console.log("location:", location);
-                    if (location) {
-                        routesMap[route] = {
-                            filePath: location.source,
-                            line: location.line,
-                            function: layer.name,
-                            route: route
-                        }
-                    }
-                });
-            }
-            routeDetails = routesMap[route]
-            if (routeDetails) {
-                span.setAttribute(SemanticAttributes.CODE_FILEPATH, routeDetails.filePath);
-                span.setAttribute(SemanticAttributes.CODE_LINENO, routeDetails.line);
-                span.setAttribute(SemanticAttributes.CODE_FUNCTION, routeDetails.function);
-            }
+            handleRoute(req, span);
             span.end();
         });
     });
@@ -189,29 +151,8 @@ export function useDigmaAppMiddlewareAsync(app: express.Application) {
             console.log("app middleware digma - before");
             next();
             console.log("app middleware digma - after");
-            const route = req.baseUrl + req.route.path;
-            let routeDetails = routesMap[route];
-            if (!routeDetails) {
-                const layer = req.route.stack[0];
-                const location = await getFunctionLocation(layer.handle);
-                if (location) {
-                    routesMap[route] = {
-                        filePath: location.source,
-                        line: location.line,
-                        function: layer.name,
-                        route: route
-                    }
-                }
-            }
-            routeDetails = routesMap[route]
-            if (routeDetails) {
-                span.setAttribute(SemanticAttributes.CODE_FILEPATH, routeDetails.filePath);
-                span.setAttribute(SemanticAttributes.CODE_LINENO, routeDetails.line);
-                span.setAttribute(SemanticAttributes.CODE_FUNCTION, routeDetails.function);
-            }
+            await handleRoute(req, span);
             span.end();
-
-
         });
     });
 }
