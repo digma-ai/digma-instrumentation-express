@@ -214,76 +214,75 @@ export function useDigmaAppMiddlewareAsync(app: express.Application) {
 
         });
     });
-
-    // export function useDigmaMiddleware(app: express.Application){
-    //     app.use( async (req, res, next) => {
-    //         const tracer = trace.getTracerProvider().getTracer(name);
-    //         return await tracer.startActiveSpan('middleware - digma', async span=>{
-    //             try{
-    //                 return next();
-    //             }
-    //             catch(e){
-    //                 throw e;
-    //             }
-    //             finally{
-    //                 const route = req.baseUrl + req.route.path;
-    //                 let routeDetails = routesMap[route];
-    //                 if(!routeDetails){
-    //                     const layer = req.route.stack[0];
-    //                     const location =  await getFunctionLocation(layer.handle);
-    //                     if(location){
-    //                         routesMap[route] = {
-    //                             filePath: location.source,
-    //                             line: location.line,
-    //                             function: layer.name,
-    //                             route: route
-    //                         }
-    //                     }
-    //                 }
-    //                 routeDetails = routesMap[route]
-    //                 if(routeDetails){
-    //                     span.setAttribute(SemanticAttributes.CODE_FILEPATH, routeDetails.filePath);
-    //                     span.setAttribute(SemanticAttributes.CODE_LINENO, routeDetails.line);
-    //                     span.setAttribute(SemanticAttributes.CODE_FUNCTION, routeDetails.function);
-    //                 }
-    //                 span.end();
-    //             }
-
-    //         });
-    //        });
-
-    // router.use(async function (req, res, next) {
-    //     // let rootSpan = trace.getSpan(context.active());
-    //     // if(rootSpan){
-    //     //     rootSpan.setAttribute("test", "asd");
-    //     // }
-    //     const tracer = trace.getTracerProvider().getTracer("DIGMAAAA");
-    //     await tracer.startActiveSpan("source code",async span=>{
-    //         next();
-    //         const route = req.baseUrl + req.route.path;
-    //         let routeDetails = routesMap[route];
-    //         if(!routeDetails){
-    //             const layer = req.route.stack[0];
-    //             const location =  await getFunctionLocation(layer.handle);
-    //             console.log("location:", location);
-    //             if(location){
-    //                 routesMap[route] = {
-    //                     filePath: location.source,
-    //                     line: location.line,
-    //                     function: layer.name,
-    //                     regexp: "",
-    //                     route: route
-    //                 }
-    //             }
-    //         }
-    //         routeDetails = routesMap[route]
-    //         if(routeDetails){
-    //             span.setAttribute(SemanticAttributes.CODE_FILEPATH, routeDetails.filePath);
-    //             span.setAttribute(SemanticAttributes.CODE_LINENO, routeDetails.line);
-    //             span.setAttribute(SemanticAttributes.CODE_FUNCTION, routeDetails.function);
-    //         }
-    //         span.end();
-    //     });
-    // })
 }
 
+// export function useDigmaMiddleware(app: express.Application){
+//     app.use( async (req, res, next) => {
+//         const tracer = trace.getTracerProvider().getTracer(name);
+//         return await tracer.startActiveSpan('middleware - digma', async span=>{
+//             try{
+//                 return next();
+//             }
+//             catch(e){
+//                 throw e;
+//             }
+//             finally{
+//                 const route = req.baseUrl + req.route.path;
+//                 let routeDetails = routesMap[route];
+//                 if(!routeDetails){
+//                     const layer = req.route.stack[0];
+//                     const location =  await getFunctionLocation(layer.handle);
+//                     if(location){
+//                         routesMap[route] = {
+//                             filePath: location.source,
+//                             line: location.line,
+//                             function: layer.name,
+//                             route: route
+//                         }
+//                     }
+//                 }
+//                 routeDetails = routesMap[route]
+//                 if(routeDetails){
+//                     span.setAttribute(SemanticAttributes.CODE_FILEPATH, routeDetails.filePath);
+//                     span.setAttribute(SemanticAttributes.CODE_LINENO, routeDetails.line);
+//                     span.setAttribute(SemanticAttributes.CODE_FUNCTION, routeDetails.function);
+//                 }
+//                 span.end();
+//             }
+
+//         });
+//        });
+
+// router.use(async function (req, res, next) {
+//     // let rootSpan = trace.getSpan(context.active());
+//     // if(rootSpan){
+//     //     rootSpan.setAttribute("test", "asd");
+//     // }
+//     const tracer = trace.getTracerProvider().getTracer("DIGMAAAA");
+//     await tracer.startActiveSpan("source code",async span=>{
+//         next();
+//         const route = req.baseUrl + req.route.path;
+//         let routeDetails = routesMap[route];
+//         if(!routeDetails){
+//             const layer = req.route.stack[0];
+//             const location =  await getFunctionLocation(layer.handle);
+//             console.log("location:", location);
+//             if(location){
+//                 routesMap[route] = {
+//                     filePath: location.source,
+//                     line: location.line,
+//                     function: layer.name,
+//                     regexp: "",
+//                     route: route
+//                 }
+//             }
+//         }
+//         routeDetails = routesMap[route]
+//         if(routeDetails){
+//             span.setAttribute(SemanticAttributes.CODE_FILEPATH, routeDetails.filePath);
+//             span.setAttribute(SemanticAttributes.CODE_LINENO, routeDetails.line);
+//             span.setAttribute(SemanticAttributes.CODE_FUNCTION, routeDetails.function);
+//         }
+//         span.end();
+//     });
+// })
