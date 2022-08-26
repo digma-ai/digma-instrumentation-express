@@ -4,7 +4,8 @@ import { trace } from '@opentelemetry/api';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
 import { name } from '../package.json';
 
-const getFunctionLocation = require('get-function-location');
+import getFunctionLocation from 'get-function-location';
+
 export interface RouteDetails {
     filePath: string;
     function: string;
