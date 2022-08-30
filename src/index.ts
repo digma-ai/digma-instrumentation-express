@@ -6,6 +6,8 @@ import { name } from '../package.json';
 
 import getFunctionLocation from 'get-function-location';
 
+//type Request = core.Request<core.ParamsDictionary, any, any, QueryString.ParsedQs, Record<string, any>>
+
 export interface RouteDetails {
     filePath: string;
     function: string;
