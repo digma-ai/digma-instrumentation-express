@@ -108,12 +108,12 @@ async function handleRoute(req, span: Span | undefined) {
 }
 
 export function useDigmaRouterMiddleware(router: express.Router) {
-    router.use(function (req, res, next) {
+    router.use(async function (req, res, next) {
         const activeContext = context.active();
         const rootSpan = trace.getSpan(activeContext);
         next();
         if (req.route) {
-            handleRoute(req, rootSpan);
+            await handleRoute(req, rootSpan);
         }
     })
 }
