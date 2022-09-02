@@ -55,47 +55,6 @@ export function useDigmaRouterMiddleware(router: express.Router) {
     })
 }
 
-export function useDigmaRouterMiddlewareAsync(router: express.Router) {
-    router.use(async function (req, res, next) {
-        const tracer = trace.getTracerProvider().getTracer(name);
-        await tracer.startActiveSpan('middleware - digma', async span => {
-            console.log("router middleware digma - before");
-            next();
-            console.log("router middleware digma - after");
-            if (req.route) {
-                await handleRoute(req, span);
-                span.end();
-            }
-        });
-    })
-}
-
-export function useDigmaAppMiddleware(app: express.Application) {
-    app.use((req, res, next) => {
-        const tracer = trace.getTracerProvider().getTracer(name);
-        tracer.startActiveSpan('middleware - digma', span => {
-            console.log("app middleware digma - before");
-            next();
-            console.log("app middleware digma - after");
-            handleRoute(req, span);
-            span.end();
-        });
-    });
-}
-
-export function useDigmaAppMiddlewareAsync(app: express.Application) {
-    app.use(async (req, res, next) => {
-        const tracer = trace.getTracerProvider().getTracer(name);
-        await tracer.startActiveSpan('middleware - digma', async span => {
-            console.log("app middleware digma - before");
-            next();
-            console.log("app middleware digma - after");
-            await handleRoute(req, span);
-            span.end();
-        });
-    });
-}
-
 export function applyDigmaInstrumentation(sdk: NodeSDK) {
     const httpInstrumentation = sdk
         // @ts-ignore: we need access to the private member _instrumentations
