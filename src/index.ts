@@ -1,4 +1,4 @@
-import type * as express from 'express';
+import { Router } from 'express';
 import { trace, context, Span } from '@opentelemetry/api';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
@@ -44,7 +44,7 @@ async function handleRoute(req, span: Span | undefined) {
     }
 }
 
-export function useDigmaRouterMiddleware(router: express.Router) {
+export function useDigmaRouterMiddleware(router: Router) {
     router.use(async function (req, res, next) {
         const activeContext = context.active();
         const rootSpan = trace.getSpan(activeContext);
