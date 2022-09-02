@@ -2,8 +2,6 @@ import { Router } from 'express';
 import { trace, context, Span } from '@opentelemetry/api';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
-import { name } from '../package.json';
-
 import getFunctionLocation from 'get-function-location';
 
 export interface RouteDetails {
