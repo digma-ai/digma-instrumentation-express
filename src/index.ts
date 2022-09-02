@@ -1,8 +1,6 @@
 import type * as express from 'express';
-import * as core from 'express-serve-static-core';
 import { trace, context, Span } from '@opentelemetry/api';
 import { NodeSDK } from '@opentelemetry/sdk-node';
-const { HttpInstrumentation } = require('@opentelemetry/instrumentation-http');
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
 import { name } from '../package.json';
 
