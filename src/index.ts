@@ -1,6 +1,8 @@
 import type * as express from 'express';
 import * as core from 'express-serve-static-core';
 import { trace, context, Span } from '@opentelemetry/api';
+import { NodeSDK } from '@opentelemetry/sdk-node';
+const { HttpInstrumentation } = require('@opentelemetry/instrumentation-http');
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
 import { name } from '../package.json';
 
@@ -16,7 +18,7 @@ export interface RouteDetails {
     // regexp: string;
 }
 
-const routesMap: Record<string, RouteDetails> = {};
+const routesMap = new Map<string, RouteDetails>();
 
 // function split (thing: any): string [] {
 //     if (typeof thing === 'string') {
@@ -84,25 +86,23 @@ function setSemanticAttributesForRoute(span?: Span, routeDetails?: RouteDetails)
     }
 }
 
+function getRequestId(request) {
+    return `${request.method}:${request.baseUrl}${request.path}`;
+}
+
 async function handleRoute(req, span: Span | undefined) {
-    const route = req.baseUrl + req.route.path;
-    let routeDetails = routesMap[route];
-    if(routeDetails) {
-        setSemanticAttributesForRoute(span, routeDetails);
-    }
-    else {
+    const requestId = getRequestId(req);
+    if(!routesMap.has(requestId)) {
         const layer = req.route.stack[0];
         const location = await getFunctionLocation(layer.handle);
-        console.log('location:', location);
         if (location) {
-            routeDetails = {
+            const routeDetails: RouteDetails = {
                 filePath: location.source,
                 line: location.line,
                 function: layer.name,
-                route: route
+                route: req.baseUrl + req.route.path,
             };
-            routesMap[route] = routeDetails;
-            setSemanticAttributesForRoute(span, routeDetails);
+            routesMap.set(requestId, routeDetails);
         }
     }
 }
@@ -229,3 +229,26 @@ export function useDigmaAppMiddlewareAsync(app: express.Application) {
 //         span.end();
 //     });
 // })
+
+export function applyDigmaInstrumentation(sdk: NodeSDK) {
+    const httpInstrumentation = sdk
+        // @ts-ignore: we need access to the private member _instrumentations
+        ._instrumentations[0]
+        .find(i => i.instrumentationName === '@opentelemetry/instrumentation-http');
+
+    const existingHook = httpInstrumentation.getConfig().applyCustomAttributesOnSpan;
+
+    httpInstrumentation.setConfig({
+        applyCustomAttributesOnSpan: function (span, request, response) {
+            if(existingHook) {
+                existingHook.call(httpInstrumentation, span, request, response);
+            }
+
+            const requestId = getRequestId(request);
+            if(routesMap.has(requestId)) {
+                const routeInfo = routesMap.get(requestId);
+                setSemanticAttributesForRoute(span, routeInfo);
+            }
+        },
+    });
+}
