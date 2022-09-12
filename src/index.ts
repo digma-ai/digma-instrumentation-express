@@ -12,8 +12,14 @@ interface RouteDetails {
 
 const routesMap = new Map<string, RouteDetails>();
 
-export function applyDigmaInstrumentation(sdk: NodeSDK) {
-    process.on('uncaughtException', handleUncaughtException);
+export interface DigmaInstrumentationOptions {
+    handleUncaughtExceptions?: boolean
+}
+
+export function applyDigmaInstrumentation(sdk: NodeSDK, options?: DigmaInstrumentationOptions) {
+    if(options?.handleUncaughtExceptions) {
+        process.on('uncaughtException', handleUncaughtException);
+    }
     
     setHookToApplySemanticAttributes(sdk);
 }
