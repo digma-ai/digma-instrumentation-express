@@ -92,6 +92,7 @@ function setSemanticAttributesForRoute(span?: Span, routeDetails?: RouteDetails)
         span?.setAttribute(SemanticAttributes.CODE_FILEPATH, routeDetails.filePath);
         span?.setAttribute(SemanticAttributes.CODE_LINENO, routeDetails.line);
         span?.setAttribute(SemanticAttributes.CODE_FUNCTION, routeDetails.function);
+        span?.setAttribute("digma.http.route", routeDetails.route);
     }    
 }    
 
