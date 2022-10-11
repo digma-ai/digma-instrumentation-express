@@ -11,6 +11,7 @@ interface RouteDetails {
 }
 
 const routesMap = new Map<string, RouteDetails>();
+let lastRouteDetails: RouteDetails;
 
 export interface DigmaInstrumentationOptions {
     handleUncaughtExceptions?: boolean
@@ -73,6 +74,7 @@ async function handleRoute(req, span: Span | undefined) {
                 route: req.baseUrl + req.route.path,
             };
             routesMap.set(requestId, routeDetails);
+            lastRouteDetails = routeDetails;
         }
     }
 }
@@ -102,6 +104,10 @@ function handleUncaughtException(err) {
         try {
             span.recordException(err);
             span.setStatus({ code: SpanStatusCode.ERROR, message: err.message });
+
+            if(lastRouteDetails) {
+                setSemanticAttributesForRoute(span, lastRouteDetails);
+            }
         }
         finally {
             span.end();
