@@ -12,8 +12,8 @@
     "prepare": "npm run build"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "digma.ai",
+  "license": "MIT",
   "publishConfig": {
     "access": "public"
   },
