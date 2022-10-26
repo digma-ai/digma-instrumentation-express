@@ -1,0 +1,11 @@
+name: Publish Package to npmjs
+
+on:
+  release:
+    types: [created]
+  workflow_dispatch:
+
+jobs:
+  publish-npm-package:
+    uses: digma-ai/github-workflows/.github/workflows/publish-npm-package.yml@main
+    secrets: inherit
