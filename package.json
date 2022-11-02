@@ -1,6 +1,6 @@
 {
   "name": "@digma/instrumentation-express",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "description": "This instrumentation package for express enriches the telemtry data collected by OpenTelemetry and helps Digma provide valuable insights and continuous feedback directly in the IDE.",
   "main": "out/index.js",
   "scripts": {
