@@ -1,72 +1,96 @@
-# Opentelemetry Node.js Instrumentation For express
+# OpenTelemetry Node.js Instrumentation for Express
 
-This instrumentation package for express provides Digma with span attributes required to effectively
-glean code object based insights for continuous feedback and display them in the IDE. The library adds
-additional attributes to the OTEL resource attributes.
+[Digma](https://digma.ai/) facilitates continuous feedback by gleaning valuable insights from your code and displaying them in the IDE as you code.
 
-provided on top of the [@opentelemetry/instrumentation-express](https://www.npmjs.com/package/@opentelemetry/instrumentation-express) package. 
-
+This [OpenTelemetry](https://opentelemetry.io/) instrumentation package for [Express](https://expressjs.com/) helps Digma analyze your code by adding a number of OTEL attributes to the spans.
 
 ## Prerequisites
-*  Node version: `8 or above`
-*  [@opentelemetry/instrumentation-express](https://www.npmjs.com/package/@opentelemetry/instrumentation-express) package
-*  [@opentelemetry/instrumentation-http](https://www.npmjs.com/package/@opentelemetry/instrumentation-http) package
+* Node version: `8 or above`
+* The [@opentelemetry/instrumentation-express](https://www.npmjs.com/package/@opentelemetry/instrumentation-express) package
+* The [@opentelemetry/instrumentation-http](https://www.npmjs.com/package/@opentelemetry/instrumentation-http) package
+* The [@digma/otel-js-instrumentation](https://www.npmjs.com/package/@digma/otel-js-instrumentation) package
 
-## Getting Started
+## Installation
 
-1. Install the package.
+### Install the package.
+```sh
+npm install @digma/instrumentation-express
+```
 
-    ```sh
-    npm install @digma/instrumentation-express
-    ```
+### Install the prerequisite packages.
+```sh
+npm install @opentelemetry/instrumentation-express
+npm install @opentelemetry/instrumentation-http
+npm install @digma/otel-js-instrumentation
+```
 
-2. Install the prerequisite OpenTelemetry express and http instrumentation packages.
+Alternatively, install the opentelemetry auto-instrumentation package for Node.js, which
+automatically imports both the express and http packages.
 
-    ```sh
-    npm install @opentelemetry/instrumentation-express
-    npm install @opentelemetry/instrumentation-http
-    ```
+```sh
+npm install @opentelemetry/auto-instrumentations-node
+npm install @digma/otel-js-instrumentation
+```
 
-    Alternatively, install the opentelemetry auto-instrumentation package for Node.js, which
-    automatically imports both the express and http packages.
+Note that the prerequisite packages are defined as peer dependencies.
 
-    ```sh
-    npm install @opentelemetry/auto-instrumentations-node
-    ```
+## Usage
 
-3. Connect the Digma instrumentation to the OpenTelemetry SDK. Locate the code that initalizes the OpenTelemetry SDK. This is typically in a file named tracing.js or tracing.ts. Call the `applyDigmaInstrumentation()` method before before calling `sdk.start()`.
+### Instrumenting your OpenTelemetry resource
 
-    ```js
-    const { NodeSDK } = require('@opentelemetry/sdk-node');
-    const { applyDigmaInstrumentation } = require('@digma/instrumentation-express');
+Initialize the Node SDK.
+Start by [setting up the Digma Node.js instrumentation](https://github.com/digma-ai/otel-js-instrumentation).
+Then add the Digma Express instrumentation.
 
-    const sdk = new NodeSDK({/* ... */});
+Your tracing.js file (or equivalent) should look something like this:
 
-    applyDigmaInstrumentation(sdk);
+```js
+// tracing.js
 
-    sdk.start();
-    ```
+const { NodeSDK } = require('@opentelemetry/sdk-node');
+const { Resource } = require('@opentelemetry/resources');
+const { digmaAttributes } = require('@digma/otel-js-instrumentation');
+const { applyDigmaExpressInstrumentation } = require('@digma/instrumentation-express');
 
-4. Add the Digma express middleware.
+const sdk = new NodeSDK({
+    resource: new Resource({
+        [SemanticResourceAttributes.SERVICE_NAME]: 'my-service', // process.env.SERVICE_NAME,
+        ...digmaAttributes({
+            rootPath: __dirname,
+        }),
+    }),
+    /* ... */
+});
 
-    ```js
-    const express = require('express');
-    const { digmaRouteHandler } = require('@digma/instrumentation-express');
-    const otelSdk = require('./tracing');
+applyDigmaExpressInstrumentation(sdk);
 
-    const app = express();
+sdk.start();
+```
 
-    app.use(digmaRouteHandler);
+### Add the Digma Express middleware to your app.
 
-    app.get('/', (req, res) => { /* ... */ });
-    ```
+Digma uses a middleware to get accurate information about your Express routes.
+For best results, add the middleware as early as possible in the pipeline.
+It should be the first or one of the first middlewares, and must be added before any routes are declared.
+
+```js   
+const express = require('express');
+const { digmaRouteHandler } = require('@digma/instrumentation-express');
+const otelSdk = require('./tracing');
+
+const app = express();
+
+app.use(digmaRouteHandler);
+
+app.get('/', (req, res) => { /* ... */ });
+```
 
 ## Express Routers
 
 We recommend adding the middleware only to the main app, as demonstrated in the **Getting Started** section above.
 When the middleware is added to the app, it also handles all of the routers attached to the app.
 
-However, the middleware can be added to an individual router instead of the main app:
+The middleware can be added to an individual router instead of the main app:
 
 ```js
 const express = require('express');
@@ -79,12 +103,11 @@ router.use(digmaRouteHandler);
 router.get('/', (req, res) => { /* ... */ });
 ```
 
-Avoid adding the middleware to *both* the main app and individual routers. Although this will not produce duplicate spans, it will cause each route in the router to be processed twice and will affect performance.
+Avoid adding the middleware to *both* the main app and individual routers. This will not produce duplicate spans but it will cause each route in the router to be processed twice and will affect performance.
 
 ## Handling Exceptions
 
-It is considered a best practice to catch exceptions, report them to OpenTelemetry, and properly
-close the spans:
+It is considered a best practice to catch exceptions, report them to OpenTelemetry, and properly close the spans:
 
 ```js
 async error(request, response) {
@@ -118,18 +141,19 @@ async error(request, response) {
 }
 ```
 
-However, there may be circumstances in which this pattern is irrelevant or cannot be applied. When thrown errors are not handled properly, this has two important ramifications:
+However, there may be circumstances in which this pattern is irrelevant or cannot be applied. When thrown errors are not properly caught, there can be two important ramifications:
 1. Some of the spans will not be closed automatically, likely producing orphaned spans (child spans whose parents are missing in the trace) and spans with incomplete or inaccurate data.
 2. The errors will not be reported.
 
 The Digma express instrumentation provides an option to capture uncaught exceptions.
-In the tracing.js file, enable the `` option when calling `applyDigmaInstrumentation`:
+In the tracing.js file, enable the `handleUncaughtExceptions` option when calling `applyDigmaInstrumentation`:
 
 ```js
 applyDigmaInstrumentation(sdk, {
     handleUncaughtExceptions: true,
 });
 ```
+
 When enabling this option, the instrumentation will handle the `uncaughtException` event.
 - It will record the error.
 - It will close the active span.
